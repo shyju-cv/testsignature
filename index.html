@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    	
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Signature</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        #pdf-container {
+            position: relative;
+            margin: 20px;
+        }
+        #pdf-canvas {
+            border: 1px solid black;
+        }
+        #signature-pad {
+            position: absolute;
+            top: 0;
+            left: 0;
+            border: 2px dashed red;
+            background: transparent;
+        }
+        #controls {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>PDF Signature Demo</h1>
+    
+    <div id="pdf-container">
+        <canvas id="pdf-canvas"></canvas>
+        <canvas id="signature-pad"></canvas>
+    </div>
+    
+    <div id="controls">
+        <button id="clear-signature">Clear Signature</button>
+        <button id="save-pdf">Save Signed PDF</button>
+    </div>
+
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.min.js"></script>
+     <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
+    <script src="https://unpkg.com/pdf-lib"></script>
+    <script src="script.js"></script>
+	
+</body>
+</html>
