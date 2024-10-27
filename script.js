@@ -1,5 +1,5 @@
 // Setup PDF.js to display the PDF
-const pdfUrl = 'http://localhost:8000/TestSignature.pdf';  // Replace this with the path to your PDF file
+const pdfUrl = 'https://shyju-cv.github.io/testsignature/TestSignature.pdf';  // Replace this with the path to your PDF file
 
 const pdfjsLib = window['pdfjs-dist/build/pdf'];
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.worker.min.js';
