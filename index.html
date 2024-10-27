@@ -1,51 +1,94 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    	
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PDF Signature</title>
+    <title>BIR Form 2316 with Overlay Fields</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-        }
         #pdf-container {
             position: relative;
-            margin: 20px;
+            max-width: 800px;
+            margin: auto;
         }
         #pdf-canvas {
-            border: 1px solid black;
+            width: 100%;
         }
-        #signature-pad {
+        .pdf-field {
             position: absolute;
-            top: 0;
-            left: 0;
-            border: 2px dashed red;
-            background: transparent;
-        }
-        #controls {
-            margin-top: 20px;
+            background-color: rgba(255, 255, 255, 0.8);
+            border: 1px solid #ccc;
+            padding: 2px;
+            font-size: 14px;
         }
     </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.9.359/pdf.min.js"></script>
 </head>
 <body>
-
-    <h1>PDF Signature Demo</h1>
-    
     <div id="pdf-container">
         <canvas id="pdf-canvas"></canvas>
-        <canvas id="signature-pad"></canvas>
-    </div>
-    
-    <div id="controls">
-        <button id="clear-signature">Clear Signature</button>
-        <button id="save-pdf">Save Signed PDF</button>
+        <!-- Dynamic fields will be added here -->
     </div>
 
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.min.js"></script>
-     <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
-    <script src="https://unpkg.com/pdf-lib"></script>
-    <script src="script.js"></script>
-	
+    <script>
+        const pdfUrl = 'https://shyju-cv.github.io/testsignature/BIR2316.pdf';  // Path to PDF
+
+        const pdfjsLib = window['pdfjs-dist/build/pdf'];
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.9.359/pdf.worker.min.js';
+
+        const canvas = document.getElementById('pdf-canvas');
+        const context = canvas.getContext('2d');
+
+        async function loadPdf() {
+            const pdf = await pdfjsLib.getDocument(pdfUrl).promise;
+            const page = await pdf.getPage(1);
+            const viewport = page.getViewport({ scale: 1.5 });
+
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+
+            // Render the page onto the canvas
+            const renderContext = {
+                canvasContext: context,
+                viewport: viewport,
+            };
+            await page.render(renderContext).promise;
+
+            // Define form field positions (in PDF coordinates)
+            const fields = [
+                { id: 'year', x: 120, y: 30, width: 100, height: 20, placeholder: 'Year' },
+                { id: 'tin', x: 120, y: 60, width: 150, height: 20, placeholder: 'TIN' },
+                { id: 'employeeName', x: 120, y: 90, width: 200, height: 20, placeholder: 'Employee Name' },
+                { id: 'dateOfBirth', x: 120, y: 120, width: 100, height: 20, placeholder: 'Date of Birth' },
+                { id: 'contactNumber', x: 120, y: 150, width: 150, height: 20, placeholder: 'Contact Number' },
+                // Add more fields as needed
+            ];
+
+            // Place each field on the canvas
+            fields.forEach(field => createField(field, viewport));
+        }
+
+        function createField(field, viewport) {
+            // Calculate scaled position and size
+            const x = field.x * viewport.scale;
+            const y = field.y * viewport.scale;
+            const width = field.width * viewport.scale;
+            const height = field.height * viewport.scale;
+
+            // Create an input element
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.placeholder = field.placeholder;
+            input.id = field.id;
+            input.className = 'pdf-field';
+            input.style.width = `${width}px`;
+            input.style.height = `${height}px`;
+            input.style.left = `${x}px`;
+            input.style.top = `${y - height}px`;  // Adjust to align at top of text line
+
+            document.getElementById('pdf-container').appendChild(input);
+        }
+
+        loadPdf();
+    </script>
 </body>
 </html>
