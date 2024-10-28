@@ -26,6 +26,7 @@
     <label for="dateIssued">Date Issued:</label>
     <input type="date" id="dateIssued"><br>
 
+    <!-- Signature Pad -->
     <div id="signaturePad">
         <canvas id="signaturePadCanvas"></canvas><br>
         <button id="clearSignature">Clear Signature</button>
@@ -37,55 +38,53 @@
     <script src="https://unpkg.com/pdf-lib@1.17.1"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/signature_pad/4.0.0/signature_pad.umd.min.js"></script>
 
+    <!-- Your Script Code -->
     <script>
-        // Initialize SignaturePad after loading its library
-        const signaturePad = new SignaturePad(document.getElementById('signaturePadCanvas'));
+        // Make sure to initialize SignaturePad after the library has loaded
+        window.addEventListener('load', () => {
+            const signaturePad = new SignaturePad(document.getElementById('signaturePadCanvas'));
 
-        document.getElementById('clearSignature').addEventListener('click', () => {
-            signaturePad.clear();
-        });
+            document.getElementById('clearSignature').addEventListener('click', () => {
+                signaturePad.clear();
+            });
 
-        // Placeholder for the path to your PDF template file
-        const pdfUrl = 'path/to/your/BIR2316_with_form_fields.pdf';
+            const pdfUrl = 'https://shyju-cv.github.io/testsignature/BIR2316.pdf';
 
-        async function loadPdfTemplate() {
-            const pdfBytes = await fetch(pdfUrl).then(res => res.arrayBuffer());
-            const pdfDoc = await PDFLib.PDFDocument.load(pdfBytes);
-            const form = pdfDoc.getForm();
+            async function loadPdfTemplate() {
+                const pdfBytes = await fetch(pdfUrl).then(res => res.arrayBuffer());
+                const pdfDoc = await PDFLib.PDFDocument.load(pdfBytes);
+                const form = pdfDoc.getForm();
 
-            // Retrieve and populate fields in the form
-            form.getTextField('CTCNo').setText(document.getElementById('ctcNo').value);
-            form.getTextField('PlaceOfIssue').setText(document.getElementById('placeOfIssue').value);
-            form.getTextField('DateSigned').setText(document.getElementById('dateSigned').value);
-            form.getTextField('DateIssued').setText(document.getElementById('dateIssued').value);
+                form.getTextField('CTCNo').setText(document.getElementById('ctcNo').value);
+                form.getTextField('PlaceOfIssue').setText(document.getElementById('placeOfIssue').value);
+                form.getTextField('DateSigned').setText(document.getElementById('dateSigned').value);
+                form.getTextField('DateIssued').setText(document.getElementById('dateIssued').value);
 
-            // Embed the signature image, if not empty
-            if (!signaturePad.isEmpty()) {
-                const signatureImage = signaturePad.toDataURL();
-                const pngImageBytes = await fetch(signatureImage).then(res => res.arrayBuffer());
-                const pngImage = await pdfDoc.embedPng(pngImageBytes);
-                const pages = pdfDoc.getPages();
-                const firstPage = pages[0];
+                if (!signaturePad.isEmpty()) {
+                    const signatureImage = signaturePad.toDataURL();
+                    const pngImageBytes = await fetch(signatureImage).then(res => res.arrayBuffer());
+                    const pngImage = await pdfDoc.embedPng(pngImageBytes);
+                    const pages = pdfDoc.getPages();
+                    const firstPage = pages[0];
 
-                // Position signature as needed
-                firstPage.drawImage(pngImage, {
-                    x: 350,
-                    y: 120, // Adjust the position based on your PDF
-                    width: 150,
-                    height: 50,
-                });
+                    firstPage.drawImage(pngImage, {
+                        x: 350,
+                        y: 120,
+                        width: 150,
+                        height: 50,
+                    });
+                }
+
+                const pdfBytesOutput = await pdfDoc.save();
+                const blob = new Blob([pdfBytesOutput], { type: 'application/pdf' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = 'BIR2316_Filled.pdf';
+                link.click();
             }
 
-            // Save and download the filled PDF
-            const pdfBytesOutput = await pdfDoc.save();
-            const blob = new Blob([pdfBytesOutput], { type: 'application/pdf' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = 'BIR2316_Filled.pdf';
-            link.click();
-        }
-
-        document.getElementById('saveForm').addEventListener('click', loadPdfTemplate);
+            document.getElementById('saveForm').addEventListener('click', loadPdfTemplate);
+        });
     </script>
 </body>
 </html>
