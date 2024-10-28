@@ -2,151 +2,83 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>BIR2316 Form Signing</title>
+    <title>Fill and Sign BIR2316 Form</title>
     <style>
-        #pdfViewer {
-            border: 1px solid #ccc;
-            width: 100%;
-            max-width: 800px;
-            height: auto;
-            margin-bottom: 10px;
-            position: relative;
-        }
-        #formInputs {
-            position: absolute;
-            top: 0;
-            left: 0;
-            pointer-events: none;
-        }
-        .form-input {
-            position: absolute;
-            pointer-events: auto;
-            background-color: #fff;
-            padding: 5px;
-            border: 1px solid #000;
-            font-size: 14px;
-        }
-        .date-picker, .text-box {
-            width: 200px;
+        #signaturePadCanvas {
+            border: 1px solid black;
+            width: 300px;
+            height: 100px;
         }
     </style>
 </head>
 <body>
     <h1>Fill and Sign BIR2316 Form</h1>
-    
-    <!-- PDF Viewer Canvas with Overlay -->
-    <div id="pdfContainer" style="position: relative;">
-        <canvas id="pdfViewer"></canvas>
-        <div id="formInputs">
-            <input type="text" id="ctcNo" class="form-input text-box" placeholder="CTC/Valid ID No">
-            <input type="text" id="placeOfIssue" class="form-input text-box" placeholder="Place of Issue">
-            <input type="date" id="dateSigned" class="form-input date-picker" placeholder="Date Signed">
-            <input type="date" id="dateIssued" class="form-input date-picker" placeholder="Date Issued">
-        </div>
-    </div>
+
+    <label for="ctcNo">CTC/Valid ID No:</label>
+    <input type="text" id="ctcNo"><br>
+
+    <label for="placeOfIssue">Place of Issue:</label>
+    <input type="text" id="placeOfIssue"><br>
+
+    <label for="dateSigned">Date Signed:</label>
+    <input type="date" id="dateSigned"><br>
+
+    <label for="dateIssued">Date Issued:</label>
+    <input type="date" id="dateIssued"><br>
 
     <div id="signaturePad">
-        <canvas id="signatureCanvas" width="300" height="100" style="border:1px solid #000;"></canvas>
+        <canvas id="signaturePadCanvas"></canvas><br>
         <button id="clearSignature">Clear Signature</button>
     </div>
-    <button id="saveForm">Save Form with Signature</button>
 
-    <!-- Include PDF.js and SignaturePad.js libraries -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/signature_pad/4.0.0/signature_pad.umd.min.js"></script>
+    <button id="saveForm">Save and Download Form</button>
 
     <script>
-        // Load PDF.js
-        const pdfUrl = 'BIR2316.pdf'; // Replace with the actual path to BIR2316 file
-        let pdfDoc = null, pageNum = 1, canvas = document.getElementById('pdfViewer'), ctx = canvas.getContext('2d');
-
-        // Define form field coordinates (adjust these values as needed)
-        const formFieldPositions = {
-            ctcNo: { x: 0.5, y: 0.65 },
-            placeOfIssue: { x: 0.5, y: 0.68 },
-            dateSigned: { x: 0.5, y: 0.71 },
-            dateIssued: { x: 0.5, y: 0.74 }
-        };
-
-        // Load and render the PDF
-        pdfjsLib.getDocument(pdfUrl).promise.then((pdf) => {
-            pdfDoc = pdf;
-            renderPage(pageNum);
-        });
-
-        function renderPage(num) {
-            pdfDoc.getPage(num).then((page) => {
-                const viewport = page.getViewport({ scale: 1.5 });
-                canvas.height = viewport.height;
-                canvas.width = viewport.width;
-
-                const renderContext = {
-                    canvasContext: ctx,
-                    viewport: viewport
-                };
-                page.render(renderContext).promise.then(() => {
-                    positionFormFields(viewport.width, viewport.height);
-                });
-            });
-        }
-
-        function positionFormFields(pdfWidth, pdfHeight) {
-            // Set form input positions based on PDF size
-            document.getElementById('ctcNo').style.left = (formFieldPositions.ctcNo.x * pdfWidth) + 'px';
-            document.getElementById('ctcNo').style.top = (formFieldPositions.ctcNo.y * pdfHeight) + 'px';
-            
-            document.getElementById('placeOfIssue').style.left = (formFieldPositions.placeOfIssue.x * pdfWidth) + 'px';
-            document.getElementById('placeOfIssue').style.top = (formFieldPositions.placeOfIssue.y * pdfHeight) + 'px';
-            
-            document.getElementById('dateSigned').style.left = (formFieldPositions.dateSigned.x * pdfWidth) + 'px';
-            document.getElementById('dateSigned').style.top = (formFieldPositions.dateSigned.y * pdfHeight) + 'px';
-            
-            document.getElementById('dateIssued').style.left = (formFieldPositions.dateIssued.x * pdfWidth) + 'px';
-            document.getElementById('dateIssued').style.top = (formFieldPositions.dateIssued.y * pdfHeight) + 'px';
-        }
-
-        // Initialize SignaturePad
-        const signaturePadCanvas = document.getElementById('signatureCanvas');
-        const signaturePad = new SignaturePad(signaturePadCanvas);
+        const pdfUrl = 'BIR2316.pdf'; // Replace with the path to your PDF template file
+        const signaturePad = new SignaturePad(document.getElementById('signaturePadCanvas'));
 
         document.getElementById('clearSignature').addEventListener('click', () => {
             signaturePad.clear();
         });
 
-        document.getElementById('saveForm').addEventListener('click', async () => {
-            if (!pdfDoc || signaturePad.isEmpty()) {
-                alert("Please sign the form.");
-                return;
+        async function loadPdfTemplate() {
+            const pdfBytes = await fetch(pdfUrl).then(res => res.arrayBuffer());
+            const pdfDoc = await PDFLib.PDFDocument.load(pdfBytes);
+            const form = pdfDoc.getForm();
+
+            // Retrieve the form fields by name and populate them
+            form.getTextField('CTCNo').setText(document.getElementById('ctcNo').value);
+            form.getTextField('PlaceOfIssue').setText(document.getElementById('placeOfIssue').value);
+            form.getTextField('DateSigned').setText(document.getElementById('dateSigned').value);
+            form.getTextField('DateIssued').setText(document.getElementById('dateIssued').value);
+
+            // Embed the signature
+            if (!signaturePad.isEmpty()) {
+                const signatureImage = signaturePad.toDataURL();
+                const pngImageBytes = await fetch(signatureImage).then(res => res.arrayBuffer());
+                const pngImage = await pdfDoc.embedPng(pngImageBytes);
+                const pages = pdfDoc.getPages();
+                const firstPage = pages[0];
+
+                // Adjust position and size of the signature as needed
+                firstPage.drawImage(pngImage, {
+                    x: 350,
+                    y: 120, // Position on the PDF page
+                    width: 150,
+                    height: 50,
+                });
             }
 
-            // Save the filled PDF (similar to the previous code)
-            pdfDoc.getPage(pageNum).then((page) => {
-                const viewport = page.getViewport({ scale: 1.5 });
-                const textLayerCanvas = document.createElement('canvas');
-                textLayerCanvas.width = canvas.width;
-                textLayerCanvas.height = canvas.height;
-                const textLayerCtx = textLayerCanvas.getContext('2d');
+            // Save and download the completed PDF
+            const pdfBytesOutput = await pdfDoc.save();
+            const blob = new Blob([pdfBytesOutput], { type: 'application/pdf' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'BIR2316_Filled.pdf';
+            link.click();
+        }
 
-                // Overlay filled data and signature (similar to previous code)
-                textLayerCtx.font = "16px Arial";
-                textLayerCtx.fillText(document.getElementById('ctcNo').value, formFieldPositions.ctcNo.x * pdfWidth, formFieldPositions.ctcNo.y * pdfHeight);
-                textLayerCtx.fillText(document.getElementById('placeOfIssue').value, formFieldPositions.placeOfIssue.x * pdfWidth, formFieldPositions.placeOfIssue.y * pdfHeight);
-                textLayerCtx.fillText(document.getElementById('dateSigned').value, formFieldPositions.dateSigned.x * pdfWidth, formFieldPositions.dateSigned.y * pdfHeight);
-                textLayerCtx.fillText(document.getElementById('dateIssued').value, formFieldPositions.dateIssued.x * pdfWidth, formFieldPositions.dateIssued.y * pdfHeight);
-
-                const signatureImage = new Image();
-                signatureImage.src = signaturePad.toDataURL();
-                signatureImage.onload = () => {
-                    textLayerCtx.drawImage(signatureImage, 350, 620, 150, 50); // Position signature
-                    const pdfDataUrl = textLayerCanvas.toDataURL();
-
-                    const link = document.createElement('a');
-                    link.href = pdfDataUrl;
-                    link.download = 'BIR2316_Filled.pdf';
-                    link.click();
-                };
-            });
-        });
+        document.getElementById('saveForm').addEventListener('click', loadPdfTemplate);
     </script>
 </body>
 </html>
