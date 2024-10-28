@@ -2,93 +2,126 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BIR Form 2316 with Overlay Fields</title>
+    <title>BIR2316 Form Signing</title>
     <style>
-        #pdf-container {
-            position: relative;
-            max-width: 800px;
-            margin: auto;
-        }
-        #pdf-canvas {
-            width: 100%;
-        }
-        .pdf-field {
-            position: absolute;
-            background-color: rgba(255, 255, 255, 0.8);
+        /* Styling for canvas and inputs */
+        #pdfViewer {
             border: 1px solid #ccc;
-            padding: 2px;
-            font-size: 14px;
+            width: 100%;
+            height: 800px;
+            margin-bottom: 10px;
+        }
+        #signaturePad, #formInputs {
+            margin-top: 20px;
+        }
+        .form-input {
+            position: absolute;
+            border: 1px solid #000;
+            padding: 5px;
+            background-color: #fff;
+        }
+        .date-picker, .text-box {
+            width: 200px;
         }
     </style>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.9.359/pdf.min.js"></script>
 </head>
 <body>
-    <div id="pdf-container">
-        <canvas id="pdf-canvas"></canvas>
-        <!-- Dynamic fields will be added here -->
+    <h1>Fill and Sign BIR2316 Form</h1>
+    
+    <!-- PDF Viewer Canvas -->
+    <canvas id="pdfViewer"></canvas>
+    
+    <!-- Text inputs and Date pickers -->
+    <div id="formInputs">
+        <input type="text" id="ctcNo" class="form-input text-box" placeholder="CTC/Valid ID No" style="top: 500px; left: 400px;">
+        <input type="text" id="placeOfIssue" class="form-input text-box" placeholder="Place of Issue" style="top: 530px; left: 400px;">
+        <input type="date" id="dateSigned" class="form-input date-picker" placeholder="Date Signed" style="top: 560px; left: 400px;">
+        <input type="date" id="dateIssued" class="form-input date-picker" placeholder="Date Issued" style="top: 590px; left: 400px;">
     </div>
 
+    <!-- SignaturePad for capturing signature -->
+    <div id="signaturePad">
+        <canvas id="signatureCanvas" width="300" height="100" style="border:1px solid #000;"></canvas>
+        <button id="clearSignature">Clear Signature</button>
+    </div>
+    
+    <!-- Download Button -->
+    <button id="saveForm">Save Form with Signature</button>
+
+    <!-- Include PDF.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.min.js"></script>
+    <!-- Include SignaturePad.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/signature_pad/4.0.0/signature_pad.umd.min.js"></script>
+
     <script>
-        const pdfUrl = 'https://shyju-cv.github.io/testsignature/BIR2316.pdf';  // Path to PDF
+        // Load PDF.js
+        const pdfUrl = 'https://shyju-cv.github.io/testsignature/BIR2316.pdf'; // Replace with the actual path to BIR2316 file
+        let pdfDoc = null, pageNum = 1, canvas = document.getElementById('pdfViewer'), ctx = canvas.getContext('2d');
 
-        const pdfjsLib = window['pdfjs-dist/build/pdf'];
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.9.359/pdf.worker.min.js';
+        // Load the PDF document
+        pdfjsLib.getDocument(pdfUrl).promise.then((pdf) => {
+            pdfDoc = pdf;
+            renderPage(pageNum);
+        });
 
-        const canvas = document.getElementById('pdf-canvas');
-        const context = canvas.getContext('2d');
+        function renderPage(num) {
+            pdfDoc.getPage(num).then((page) => {
+                const viewport = page.getViewport({ scale: 1.5 });
+                canvas.height = viewport.height;
+                canvas.width = viewport.width;
 
-        async function loadPdf() {
-            const pdf = await pdfjsLib.getDocument(pdfUrl).promise;
-            const page = await pdf.getPage(1);
-            const viewport = page.getViewport({ scale: 1.5 });
-
-            canvas.width = viewport.width;
-            canvas.height = viewport.height;
-
-            // Render the page onto the canvas
-            const renderContext = {
-                canvasContext: context,
-                viewport: viewport,
-            };
-            await page.render(renderContext).promise;
-
-            // Define form field positions (in PDF coordinates)
-            const fields = [
-                { id: 'year', x: 120, y: 30, width: 100, height: 20, placeholder: 'Year' },
-                { id: 'tin', x: 120, y: 60, width: 150, height: 20, placeholder: 'TIN' },
-                { id: 'employeeName', x: 120, y: 90, width: 200, height: 20, placeholder: 'Employee Name' },
-                { id: 'dateOfBirth', x: 120, y: 120, width: 100, height: 20, placeholder: 'Date of Birth' },
-                { id: 'contactNumber', x: 120, y: 150, width: 150, height: 20, placeholder: 'Contact Number' },
-                // Add more fields as needed
-            ];
-
-            // Place each field on the canvas
-            fields.forEach(field => createField(field, viewport));
+                const renderContext = {
+                    canvasContext: ctx,
+                    viewport: viewport
+                };
+                page.render(renderContext);
+            });
         }
 
-        function createField(field, viewport) {
-            // Calculate scaled position and size
-            const x = field.x * viewport.scale;
-            const y = field.y * viewport.scale;
-            const width = field.width * viewport.scale;
-            const height = field.height * viewport.scale;
+        // Initialize SignaturePad
+        const signaturePadCanvas = document.getElementById('signatureCanvas');
+        const signaturePad = new SignaturePad(signaturePadCanvas);
 
-            // Create an input element
-            const input = document.createElement('input');
-            input.type = 'text';
-            input.placeholder = field.placeholder;
-            input.id = field.id;
-            input.className = 'pdf-field';
-            input.style.width = `${width}px`;
-            input.style.height = `${height}px`;
-            input.style.left = `${x}px`;
-            input.style.top = `${y - height}px`;  // Adjust to align at top of text line
+        document.getElementById('clearSignature').addEventListener('click', () => {
+            signaturePad.clear();
+        });
 
-            document.getElementById('pdf-container').appendChild(input);
-        }
+        document.getElementById('saveForm').addEventListener('click', async () => {
+            if (!pdfDoc || signaturePad.isEmpty()) {
+                alert("Please sign the form.");
+                return;
+            }
 
-        loadPdf();
+            // Draw the filled fields and signature on the PDF
+            pdfDoc.getPage(pageNum).then((page) => {
+                const viewport = page.getViewport({ scale: 1.5 });
+                const textLayerCanvas = document.createElement('canvas');
+                textLayerCanvas.width = canvas.width;
+                textLayerCanvas.height = canvas.height;
+                const textLayerCtx = textLayerCanvas.getContext('2d');
+
+                // Draw filled fields onto the textLayerCanvas
+                textLayerCtx.font = "16px Arial";
+                textLayerCtx.fillText(document.getElementById('ctcNo').value, 400, 500);
+                textLayerCtx.fillText(document.getElementById('placeOfIssue').value, 400, 530);
+                textLayerCtx.fillText(document.getElementById('dateSigned').value, 400, 560);
+                textLayerCtx.fillText(document.getElementById('dateIssued').value, 400, 590);
+
+                // Draw the signature onto the textLayerCanvas
+                const signatureImage = new Image();
+                signatureImage.src = signaturePad.toDataURL();
+                signatureImage.onload = () => {
+                    textLayerCtx.drawImage(signatureImage, 350, 620, 150, 50); // Position signature
+                    const pdfDataUrl = textLayerCanvas.toDataURL();
+
+                    // Allow the user to download the filled PDF
+                    const link = document.createElement('a');
+                    link.href = pdfDataUrl;
+                    link.download = 'BIR2316_Filled.pdf';
+                    link.click();
+                };
+            });
+        });
     </script>
 </body>
 </html>
